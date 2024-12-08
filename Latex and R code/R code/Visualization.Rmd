@@ -1,0 +1,846 @@
+---
+title: "Data Visualization"
+author: "Bibek Sapkota"
+date: "2024-09-20"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+
+```{r}
+#Importing library
+#install.packages("dplyr")
+#install.packages("ggplot2")
+#install.packages("gridExtra")
+#install.packages("plotly")
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(plotly)
+library(tidyr)
+library(reshape2)             # Load the package
+```
+
+```{r}
+for (col in names(df)) {
+  cat("Unique values in", col, ":\n")
+  print(unique(df[[col]]))
+  cat("\n")
+}
+```
+
+
+```{r}
+#importing dataset
+data <- read.csv('Thyroid_Diff.csv')
+data
+```
+
+```{r}
+tail(data)
+```
+
+
+```{r}
+#Printing dimension of dataset
+dim(data)
+```
+
+
+```{r}
+str(data)
+```
+
+
+```{r}
+summary(data)
+```
+
+```{r}
+#Checking for missing values
+missing_values <- colSums(is.na(data))
+print(missing_values)
+```
+
+```{r}
+#printing number of rows
+print(nrow(data))
+```
+
+
+
+
+```{r}
+# Check for duplicate rows
+duplicates <- duplicated(data)
+sum(duplicates)
+data[duplicates, ]
+```
+
+
+```{r}
+# Check for duplicate rows [1st - output]
+no_of_duplicates_before_cleaning <- duplicated(data)
+sum(no_of_duplicates_before_cleaning)
+
+# Remove duplicate rows while keeping the first occurrence [2nd -output]
+df <- data[!duplicated(data), ]
+no_of_duplicates_after_cleaning <- duplicated(df)
+sum(no_of_duplicates_after_cleaning)
+```
+
+
+```{r}
+print(nrow(data))
+print(nrow(df))
+```
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+#df <- df %>%
+ # rename(Tumor = T, 
+  #       `Lymph Nodes` = N, 
+   #      `Cancer Metastasis` = M)
+```
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='hide'}
+str(df)
+```
+
+```{r}
+
+# Preview the data in both columns
+print(unique(df$Smoking))
+print(unique(df$Hx.Smoking))
+
+# Summary statistics for a quick check on contents
+summary(df$Smoking)
+summary(df$Hx.Smoking)
+
+# Create a combined column 
+df <- df %>%
+  mutate(Smoking_Status = case_when(
+    Smoking == 'Yes' | Hx.Smoking == 'Yes' ~ 'Ever Smoked',
+    TRUE ~ 'Never Smoked'
+  ))
+
+```
+```{r}
+df
+```
+
+
+# Visualization
+
+## Below are the Visulaization that areinclude in report
+
+```{r}
+p <- ggplot(df, aes(x = Age)) +
+  geom_histogram(bins = 20, fill = "orange", color = "black") +
+  ggtitle("Age Distribution of Patients") +
+  xlab("Age") +
+  ylab("Frequency") +
+  theme_minimal()
+
+ggplotly(p)
+```
+
+```{r}
+Gender_count <- df %>%
+  group_by(Gender) %>%
+  summarise(Count = n(), .groups = 'drop')
+
+plot_ly(Gender_count, labels = ~Gender, values = ~Count, type = 'pie',
+             textinfo = 'percent', insidetextorientation = 'radial', 
+             marker = list(colors = c('lightblue', 'orange'))) %>%
+  layout(title = 'Gender Distribution of Patients')
+
+```
+
+
+```{r}
+p <- ggplot(df, aes(x =Age, fill = Gender)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Age Distribution by Gender", x = "Age", y = "Density") +
+  theme_minimal()
+
+ggplotly(p)
+```
+
+
+```{r}
+p <- ggplot(df, aes(x = Age, fill = Recurred)) +
+  geom_histogram(bins = 20, color = "black", position = "stack") +
+  ggtitle("Age Distribution of Patients with and without Recurrence") +
+  xlab("Age") +
+  ylab("Count") +
+  theme_minimal() +
+  scale_fill_manual(values = c("orange", "lightblue"))  
+
+ggplotly(p)
+```
+
+
+```{r}
+df_male <- df %>%
+  filter(Gender == "M") %>%
+  count(Recurred)
+
+df_female <- df %>%
+  filter(Gender == "F") %>%
+  count(Recurred)
+
+pie_male <- plot_ly(df_male, labels = ~Recurred, values = ~n, type = 'pie',
+                    textinfo = 'label+percent',
+                    hoverinfo = 'label+value+percent',
+                    marker = list(colors = c('#FFDDC1', '#FFABAB'), line = list(color = '#FFFFFF', width = 1))) %>%
+  layout(title = list(text = 'Male vs Recurrence', x = 0.5))
+
+pie_female <- plot_ly(df_female, labels = ~Recurred, values = ~n, type = 'pie',
+                      textinfo = 'label+percent',
+                      hoverinfo = 'label+value+percent',
+                      marker = list(colors = c('#FFDDC1', '#FFABAB'), line = list(color = '#FFFFFF', width = 1))) %>%
+  layout(title = list(text = 'Female vs Recurrence', x = 0.5))
+
+pie_male
+pie_female
+```
+
+```{r}
+p <- ggplot(df, aes(x = Smoking_Status, fill =Pathology)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Smoking vs Pathology")+
+  xlab("Smoking Status")+
+  ylab("Count")+
+  theme_minimal()
+
+ggplotly(p)
+```
+
+```{r}
+p <- ggplot(df, aes(x = Stage, fill = Smoking)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Cancer Stages by Currently Smoking",
+       x = "Cancer Stage", 
+       y = "Count", 
+       fill = "Smoking Status") +
+  theme_minimal()
+
+ggplotly(p)
+```
+
+```{r}
+p <- ggplot(df, aes(x = Stage, fill = Hx.Smoking)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Cancer Stages by Smoking History",
+       x = "Cancer Stage", 
+       y = "Count", 
+       fill = "Smoking Status") +
+  theme_minimal()
+
+ggplotly(p)
+```
+
+```{r}
+smoking_summary <- df %>%
+  select(Stage, `Hx.Smoking`, Smoking) %>%
+  pivot_longer(cols = c(`Hx.Smoking`, Smoking), names_to = "Smoking_Type", values_to = "Status") %>%
+  group_by(Smoking_Type, Status, Stage) %>%
+  summarise(Count = n(), .groups = 'drop')
+
+# Plotting the summarized data
+p<- ggplot(smoking_summary, aes(x = Stage, y = Count, fill = Status)) +
+  geom_bar(stat = "identity", position = position_dodge(), width = 0.7) +
+  facet_wrap(~ Smoking_Type, scales = "free_y", nrow = 2) +
+  labs(title = "Comparison of Cancer Stages by Smoking History and Current Status",
+       x = "Cancer Stage",
+       y = "Count of Patients",
+       fill = "Smoking Status") +
+  scale_fill_brewer(palette = "Set1") +  
+  theme_minimal() +
+  theme(plot.title = element_text(size = 10.8))
+
+ggplotly(p)
+```
+
+```{r}
+p <- ggplot(df, aes(x = Hx.Radiothreapy, fill = Thyroid.Function)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Impact of Radiothreapy history on Thyroid function")+
+  xlab("Smoking")+
+  ylab("Count")+
+  theme_minimal()
+
+ggplotly(p)
+```
+
+```{r}
+p <- ggplot(df, aes(x = Hx.Radiothreapy, fill = Recurred)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Impact of Radiotherapy history on Recurrence")+
+  xlab("Smoking")+
+  ylab("Count")+
+  theme_minimal()
+
+ggplotly(p)
+```
+
+
+
+```{r}
+prevalence <- df %>%
+  group_by(Thyroid.Function) %>%
+  summarise(Count = n()) 
+
+p <- ggplot(prevalence, aes(x = Thyroid.Function, y = Count, fill = Thyroid.Function)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Prevalence of Thyroid Function Categories",
+       x = "Thyroid Function",
+       y = "Count") +
+  theme_minimal()+
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplotly(p)
+```
+
+
+
+```{r}
+p <- ggplot(df, aes(x = Thyroid.Function, fill = Physical.Examination)) +
+  geom_bar(position = "dodge") +
+  labs(title = 'Thyroid Function and Physical Examination',
+       x = 'Thyroid Function',
+       y = 'Count') +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplotly(p)
+  
+```
+
+```{r}
+p <- ggplot(df, aes(x = Thyroid.Function, fill =Stage)) +
+  geom_bar(position = "dodge") +
+  labs(title = 'Thyroid Function and stage',
+       x = 'Thyroid Function',
+       y = 'Count') +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplotly(p)
+```
+
+```{r}
+age_min <- min(df$Age)
+age_max <- max(df$Age)
+age_max
+age_min
+```
+
+
+```{r}
+p <- ggplot(df, aes(x = Age, y = Thyroid.Function, color = Thyroid.Function)) +
+  geom_jitter() + 
+  facet_wrap(~ Gender) + 
+  labs(title = "Thyroid Function Variation by Age and Gender",
+       x = "Age",
+       y = "Thyroid Function") +
+  theme_minimal() 
+
+ggplotly(p)
+```
+
+
+```{r}
+p <- ggplot(df, aes(x = Pathology, fill = Adenopathy)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Prevalence of Adenopathy Across Thyroid Pathologies",
+       x = "Thyroid Pathology",
+       y = "Count of Cases") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set1", name = "Adenopathy") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+ggplotly(p)
+```
+
+
+```{r}
+p <- ggplot(df, aes(x = Stage, fill = Adenopathy)) +
+  geom_bar(position = "fill") + 
+  labs(title = "Correlation of Adenopathy with Thyroid Cancer Staging",
+       x = "Thyroid Cancer Stage",
+       y = "Proportion") +
+  theme_minimal() 
+
+ggplotly(p)
+```
+
+
+```{r}
+p <- ggplot(df, aes(x = Recurred, fill = Adenopathy)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Recurrence Rates  vs Adenopathy",
+       x = "Recurrence (Yes/No)",
+       y = "Count of Cases") +
+  theme_minimal() 
+
+ggplotly(p)
+```
+
+
+```{r}
+p <- ggplot(df, aes(x = Physical.Examination, fill = Risk)) +
+  geom_bar(position = "fill") + 
+  labs(title = "Physical Examination Findings Across Different Risk Categories",
+       x = "Physical Examination Findings",
+       y = "Proportion") +
+  scale_fill_brewer(palette = "Set2", name = "Risk Category") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+ggplotly(p)
+```
+```{r}
+print("Columns in df:")
+print(colnames(df))
+```
+
+
+```{r}
+library(ggplot2)
+
+# Combining the T, N, and M stages into a single TNM stage variable for visualization
+df$TNM <- paste(df$T, df$N, df$M, sep="")
+
+p<- ggplot(df, aes(x = Age, fill = Gender, color = Gender)) +
+  geom_histogram(position = "identity", alpha = 0.6, binwidth = 5) + 
+  facet_wrap(~ TNM, scales = "free_y") + 
+  labs(title = "Influence of Demographic Factors on TNM Staging in Thyroid Cancer",
+       x = "Age",
+       y = "Count") +
+  scale_fill_brewer(palette = "Pastel1", name = "Gender") + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+ggplotly(p)
+```
+
+```{r}
+multi_focal_df <- df %>% filter(Focality == "Multi-Focal")
+
+p <- ggplot(multi_focal_df, aes(x = Risk)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Distribution of Risk Categories in Patients with Multi-Focal Thyroid Pathology",
+       x = "Risk Category",
+       y = "Number of Patients") +
+  theme_minimal() 
+
+ggplotly(p)
+```
+
+```{r}
+table_df <- table(df$Pathology, df$Risk)
+
+melted_df <- melt(table_df, varnames = c("Pathology", "Risk"))
+
+p <- ggplot(melted_df, aes(x = Pathology, y = Risk, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "white", high = "steelblue") +
+  labs(title = "Correlation of Risk Categories with Pathology Types in Thyroid Cancer",
+       x = "Pathology Type",
+       y = "Risk Category") +
+  theme_minimal() 
+
+ggplotly(p)
+```
+
+
+```{r}
+p <- ggplot(df, aes(x = Stage, y = Age, fill = Stage)) +
+  geom_boxplot() +
+  facet_grid(. ~ Gender) +  
+  labs(title = "Age and Gender Distribution by Cancer Stage",
+       x = "Cancer Stage",
+       y = "Age") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Paired") +
+  theme(strip.text.x = element_text(size = 10, face = "bold"),  
+        strip.background = element_rect(fill = "lightblue"))
+
+ggplotly(p)
+```
+
+
+```{r}
+p <- ggplot(df, aes(x = Gender, fill = Recurred)) + 
+  geom_bar(position = "fill") + 
+  facet_wrap(~ Pathology) + 
+  labs(title = "Gender vs pathology vs Recurrence", x = "Gender", y = "Proportion")
+
+ggplotly(p)
+```
+
+```{r}
+df$AgeGroup <- cut(df$Age,
+                   breaks = c(0, 39, 59, Inf),
+                   labels = c("20-39", "40-59", "60+"),
+                   right = TRUE)
+
+
+response_age_group <- df %>%
+  group_by(AgeGroup, Response) %>%
+  summarise(Count = n(), .groups = 'drop')
+
+
+p <- ggplot(response_age_group, aes(x = AgeGroup, y = Count, fill = Response)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  labs(title = "Treatment Response by Age Group",
+       x = "Age Group",
+       y = "Count of Responses") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Set3") 
+
+ggplotly(p)
+```
+
+
+
+```{r}
+P <- ggplot(df, aes(x = Response, fill = Gender)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Treatment Response vs Gender")+
+  xlab("Response")+
+  ylab("Count")+
+  theme_minimal()
+
+ggplotly(P)
+
+```
+
+```{r}
+P <- ggplot(df, aes(x = Response, fill = Recurred)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Treatment Response vs Recurrence")+
+  xlab("Response")+
+  ylab("Count")+
+  theme_minimal()
+
+ggplotly(P)
+
+```
+
+```{r}
+# View the original data for specific stage and smoking status
+df %>%
+  filter(Stage %in% c("II", "III", "IVA", "IVB") & Smoking_Status %in% c("Ever Smoked", "Never Smoked")) %>%
+  select(Stage, Smoking_Status, Response)
+
+```
+
+```{r}
+# Convert Response to numeric values based on a predefined mapping
+df <- df %>%
+  mutate(Response_numeric = case_when(
+    Response == "Excellent" ~ 5,
+    Response == "Good" ~ 4,
+    Response == "Indeterminate" ~ 3,
+    Response == "Structural Incomplete" ~ 2,
+    Response == "Biochemical Incomplete" ~ 1,
+    TRUE ~ NA_real_  # Assign NA for any other responses
+  ))
+```
+
+```{r}
+summary_df <- df %>%
+  group_by(Stage, Smoking_Status) %>%
+  summarise(Average_Response = mean(Response_numeric, na.rm = TRUE), .groups = "drop")
+
+summary_df
+```
+
+```{r}
+# Filter out rows with NaN average responses
+summary_df_filtered <- summary_df %>%
+  filter(!is.nan(Average_Response))
+
+# View the filtered summary
+print(summary_df_filtered)
+```
+
+```{r}
+p<- ggplot(summary_df_filtered, aes(x = Stage, y = Average_Response, fill = Smoking_Status)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Average Treatment Response by Stage and Smoking Status",
+       x = "Cancer Stage",
+       y = "Average Treatment Response") +
+  theme_minimal()
+
+ggplotly(p)
+```
+
+
+
+```{r}
+p <- ggplot(data, aes(x = Thyroid.Function, fill =Response)) +
+  geom_bar(position = "fill") +
+  labs(title = "Treatment Outcomes by Thyroid Function Category",
+       x = "Thyroid Function",
+       y = "Proportion",
+       fill = "Treatment Outcome") +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplotly(p)
+```
+
+
+## Below are some of the Visulaization that are not-include in report
+
+```{r}
+plot <- ggplot(df, aes(x = Stage, y = Age)) +
+  geom_boxplot(fill = "red") +
+  ggtitle('Boxplot of Age by Cancer Stage') +
+  xlab('Cancer Stage') +
+  ylab('Age') +
+  theme(axis.text.x = element_text(angle = 0))
+
+plot
+```
+
+
+
+```{r}
+unique(df$Smoking_Status)
+
+```
+
+
+
+```{r}
+ggplot(df, aes(x=Gender, fill=Response)) +
+  geom_bar(position="dodge") +
+  facet_wrap(~ Smoking_Status) +
+  labs(title="Treatment Outcomes by Smoking Status and Gender", 
+       x="Gender", 
+       y="Count", 
+       fill="Treatment Outcome") +
+  theme_minimal()
+```
+
+
+
+
+
+```{r}
+ggplot(df, aes(x = Smoking_Status, fill = Recurred)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Impact of Smoking on Recurrence")+
+  xlab("Smoking")+
+  ylab("Count")+
+  theme_minimal()
+```
+
+
+
+
+```{r}
+ggplot(df, aes(x = Gender, fill = Response)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Gender vs Treatment Response")+
+  xlab("Gender")+
+  ylab("Count")+
+    theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = Focality, fill = Stage)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Focality vs  Cancer Stage")+
+  xlab("Focality")+
+  ylab("Count")+
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = Adenopathy, fill = Risk)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Adenopathy vs Risk Level")+
+  xlab("Adenopathy")+
+  ylab("Count")+
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = Smoking, fill = Response)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Smoking vs Treatment Response")+
+  xlab("Smoking")+
+  ylab("Count")+
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = Risk, fill = Recurred)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Risk Level vs Recurrence")+
+  xlab("Risk Level")+
+  ylab("Count")+
+  theme_minimal()
+```
+
+```{r}
+ggplot(df, aes(x=Stage, fill=Response)) +
+  geom_bar(position="dodge") +
+  labs(title="Treatment Responses by Cancer Stage", 
+       x="Cancer Stage", 
+       y="Count", 
+       fill="Treatment Response") +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = Stage, fill = Gender)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Cancer Stage vs Gender Distribution")+
+  xlab("Cancer Stage")+
+  ylab("Count")+
+  theme_minimal()
+```
+
+
+
+```{r}
+ggplot(df, aes(x = Thyroid.Function, fill = Response)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Thyroid Function vs Treatment Response")+
+  xlab("Thyroid Function")+
+  ylab("Count")+
+  theme_minimal()+
+    coord_flip()
+
+```
+
+
+```{r}
+Gender <- ggplot(df, aes(x = Gender)) +
+  geom_bar(fill = "orange") +
+  ggtitle('Gender Distribution') +
+  xlab('Gender') +
+  ylab('Count') +
+  theme_minimal()
+
+Gender
+```
+
+
+
+
+```{r}
+ggplot(df, aes(x = Recurred, fill = Gender)) +
+  geom_bar(position = "dodge") +
+  labs(title = 'Recurrence Rates by Gender',
+       x = 'Recurrence Status (Yes/No)',
+       y = 'Count') +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = Recurred, fill = Hx.Smoking)) +
+  geom_bar(position = "dodge") +
+  labs(title = 'Recurrence Rates by Smoking History',
+       x = 'Recurrence Status (Yes/No)',
+       y = 'Count') +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = Recurred, fill = Thyroid.Function)) +
+  geom_bar(position = "dodge") +
+  labs(title = 'Recurrence Rates by Thyroid Function Status',
+       x = 'Recurrence Status (Yes/No)',
+       y = 'Count') +
+  theme_minimal()
+```
+
+```{r}
+ggplot(df, aes(x = Recurred, fill = Risk)) +
+  geom_bar(position = "dodge") +
+  labs(title = 'Recurrence Rates by Risk Classification',
+       x = 'Recurrence Status (Yes/No)',
+       y = 'Count') +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = Recurred, fill = Adenopathy)) +
+  geom_bar(position = "dodge") +
+  labs(title = 'Recurrence Rates by Adenopathy Presence',
+       x = 'Recurrence Status (Yes/No)',
+       y = 'Count') +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = Recurred, fill = Focality)) +
+  geom_bar(position = "dodge") +
+  labs(title = 'Recurrence Rates by Tumor Focality',
+       x = 'Recurrence Status (Yes/No)',
+       y = 'Count') +
+  theme_minimal()
+```
+
+```{r}
+ggplot(df, aes(x = Recurred, fill = Hx.Radiothreapy)) +
+  geom_bar(position = "dodge") +
+  labs(title = 'Recurrence Rates by History of Radiotherapy',
+       x = 'Recurrence Status (Yes/No)',
+       y = 'Count') +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = Stage, fill = Response)) +
+  geom_bar(position = "dodge") +
+  labs(title = 'Treatment Response by Cancer Stage',
+       x = 'Cancer Stage',
+       y = 'Count') +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(df, aes(x = Recurred, fill = Pathology)) +
+  geom_bar(position = "dodge") +
+  labs(title = 'Recurrence Rates by Pathology Type',
+       x = 'Recurrence Status (Yes/No)',
+       y = 'Count') +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,12 @@
+name: ThyroidFunctionData
+title: ThyroidFunctionData
+username: bibeksapkota
+account: bibeksapkota
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13065693
+bundleId: 9243171
+url: https://bibeksapkota.shinyapps.io/ThyroidFunctionData/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
